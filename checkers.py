@@ -12,14 +12,21 @@ class Move(Enum):
     UPRIGHT = 1
     DOWNLEFT = 2
     DOWNRIGHT = 3
+    
+class Outcome(Enum):
+    W_WIN = 1
+    DRAW = 0
+    B_WIN = -1
 
 #Note: American Checkers Rules
 class Checkers:
     def __init__(self):
+        self.outcome = None
         self.turn = Piece.BLACK
         self.prev_jump = None
         self.w_score = 0
         self.b_score = 0
+        self.draw_moves = 0
         self.board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
         for i in range(3):
             for j in range(8):
@@ -38,6 +45,9 @@ class Checkers:
         if self.check_winner():
             print("Game Over")
             return False
+        if self.check_draw():
+            print("Game Over")
+            return False
         
         self.print_board()
         while True:
@@ -51,6 +61,30 @@ class Checkers:
                 break
         
         return True
+    
+    def get_state(self):
+        pass
+    
+    #Moves: 8x8x4 order -> up left, up right, down left, down right
+    def get_valid_moves(self) -> list[int]:
+        moves = [0 for _ in range(8 * 8 * 4)]
+        for i in range(8):
+            for j in range(8):
+                if self.check_valid_move((i, j), Move.UPLEFT, self.can_jump(), self.is_jump((i, j), Move.UPLEFT)):
+                    moves[i * 8 * 4 + j * 4 + 0] = 1
+                if self.check_valid_move((i, j), Move.UPRIGHT, self.can_jump(), self.is_jump((i, j), Move.UPRIGHT)):
+                    moves[i * 8 * 4 + j * 4 + 1] = 1
+                if self.check_valid_move((i, j), Move.DOWNLEFT, self.can_jump(), self.is_jump((i, j), Move.DOWNLEFT)):
+                    moves[i * 8 * 4 + j * 4 + 2] = 1
+                if self.check_valid_move((i, j), Move.DOWNRIGHT, self.can_jump(), self.is_jump((i, j), Move.DOWNRIGHT)):
+                    moves[i * 8 * 4+ j * 4 + 3] = 1
+        return moves
+    
+    def get_move(self, logit: int) -> tuple[tuple[int, int], Move]:
+        row = logit // (8 * 4)
+        col = (logit - row * 8 * 4) // 4
+        move = logit - row * 8 * 4 - col * 4
+        return ((row, col), Move(move))
     
     def print_board(self):
         print("  0 1 2 3 4 5 6 7")
@@ -113,14 +147,29 @@ class Checkers:
         else:
             if move == Move.UPLEFT:
                 self.board[position[0] - 1][position[1] - 1] = piece
+                new_position = (position[0] - 1, position[1] - 1)
             elif move == Move.UPRIGHT:
                 self.board[position[0] - 1][position[1] + 1] = piece
+                new_position = (position[0] - 1, position[1] + 1)
             elif move == Move.DOWNLEFT:
                 self.board[position[0] + 1][position[1] - 1] = piece
+                new_position = (position[0] + 1, position[1] - 1)
             elif move == Move.DOWNRIGHT:
                 self.board[position[0] + 1][position[1] + 1] = piece
+                new_position = (position[0] + 1, position[1] + 1)
             self.turn = Piece.WHITE if self.turn == Piece.BLACK else Piece.BLACK
         
+        if piece == Piece.BLACK and new_position[0] == 0:
+            self.board[new_position[0]][new_position[1]] = Piece.K_BLACK
+        elif piece == Piece.WHITE and new_position[0] == 7:
+            self.board[new_position[0]][new_position[1]] = Piece.K_WHITE
+            
+        if piece == Piece.BLACK or piece == Piece.WHITE or is_jump:
+            self.draw_moves = 0
+        else:
+            self.draw_moves += 1
+        
+        self.move_count += 1
         return True
             
     def check_valid_move(self, position: tuple[int, int], move: Move, jump: bool, is_jump: bool):
@@ -275,15 +324,26 @@ class Checkers:
     def check_winner(self):
         if self.b_score == 12:
             print("Black wins!")
+            self.outcome = Outcome.B_WIN
             return True
         elif self.w_score == 12:
             print("White wins!")
+            self.outcome = Outcome.W_WIN
             return True
         elif not self.can_move():
             if self.turn == Piece.BLACK:
                 print("White wins!")
+                self.outcome = Outcome.W_WIN
             else:
                 print("Black wins!")
+                self.outcome = Outcome.B_WIN
+            return True
+        return False
+    
+    def check_draw(self):
+        if self.move_count == self.max_moves:
+            print("Draw!")
+            self.outcome = Outcome.DRAW
             return True
         return False
             
