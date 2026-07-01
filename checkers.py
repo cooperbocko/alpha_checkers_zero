@@ -1,5 +1,7 @@
 from enum import Enum
 
+import numpy as np
+
 class Piece(Enum):
     EMPTY = 0
     BLACK = 1
@@ -27,6 +29,7 @@ class Checkers:
         self.w_score = 0
         self.b_score = 0
         self.draw_moves = 0
+        self.max_moves = 40
         self.board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
         for i in range(3):
             for j in range(8):
@@ -63,7 +66,29 @@ class Checkers:
         return True
     
     def get_state(self):
-        pass
+        player = np.zeros((8, 8))
+        opponent = np.zeros((8, 8))
+        player_k = np.zeros((8, 8))
+        opponent_k = np.zeros((8, 8))
+        for i in range(8):
+            for j in range(8):
+                if self.turn == Piece.WHITE and self.board[i][j] == Piece.WHITE or self.turn == Piece.BLACK and self.board[i][j] == Piece.BLACK:
+                    player[i][j] = 1
+                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.BLACK or self.turn == Piece.BLACK and self.board[i][j] == Piece.WHITE:
+                    opponent[i][j] = 1
+                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_WHITE or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_BLACK:
+                    player_k[i][j] = 1
+                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_BLACK or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_WHITE:
+                    opponent_k[i][j] = 1
+        #Board is in Black's perspective
+        if self.turn == Piece.WHITE:
+            player = np.flip(player)
+            opponent = np.flip(opponent)
+            player_k = np.flip(player_k)
+            opponent_k = np.flip(opponent_k)            
+        turn = np.zeros((8, 8)) if self.turn == Piece.BLACK else np.ones((8, 8))
+        
+        return np.stack((player, opponent, player_k, opponent_k, turn))
     
     #Moves: 8x8x4 order -> up left, up right, down left, down right
     def get_valid_moves(self) -> list[int]:
@@ -85,6 +110,21 @@ class Checkers:
         col = (logit - row * 8 * 4) // 4
         move = logit - row * 8 * 4 - col * 4
         return ((row, col), Move(move))
+    
+    def convert_move(self, position: tuple[int, int], move: Move):
+        #Board is already oriented for black's perspective
+        if self.turn == Piece.Black:
+            return position, move
+        else:
+            new_position = (7 - position[0], 7 - position[1])
+            if move == Move.UPLEFT:
+                return new_position, Move.DOWNRIGHT
+            elif move == Move.UPRIGHT:
+                return new_position, Move.DOWNLEFT
+            elif move == Move.DOWNLEFT:
+                return new_position, Move.UPRIGHT
+            elif move == Move.DOWNRIGHT:
+                return new_position, Move.UPLEFT
     
     def print_board(self):
         print("  0 1 2 3 4 5 6 7")
@@ -341,7 +381,7 @@ class Checkers:
         return False
     
     def check_draw(self):
-        if self.move_count == self.max_moves:
+        if self.draw_moves == self.max_moves:
             print("Draw!")
             self.outcome = Outcome.DRAW
             return True

@@ -1,5 +1,6 @@
 import random
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -62,16 +63,46 @@ class ReplayBuffer():
         self.buffer = []
         self.max_size = max_size
         
-    def add(self, state, action_probs, value):
+    def add(self, states, action_probs, values):
         if len(self.buffer) >= self.max_size:
             self.buffer.pop(0)
-        self.buffer.append((state, action_probs, value))
+        self.buffer.append((states, action_probs, values))
         
     def sample(self, batch_size):
-        batch = random.sample(self.buffer, batch_size)
-        states = [data[0] for data in batch]
-        action_probs = [data[1] for data in batch]
-        values = [data[2] for data in batch]
+        states = []
+        action_probs = []
+        values = []
+        for _ in range(batch_size):
+            game = random.choice(self.buffer)
+            start = random.randint(0, len(game[0]) - 1)
+            
+            curr_state = game[0][start]
+            curr_action_probs = game[1][start]
+            curr_value = game[2][start]
+            
+            player = curr_state[0]
+            opponent = curr_state[1]
+            player_k = curr_state[2]
+            opponent_k = curr_state[3]
+            turn = curr_state[4]
+            
+            h1_state = game[0][start-1] if start-1 >= 0 else [np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8))]
+            h1_player = h1_state[0] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[1])
+            h1_opponent = h1_state[1] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[0])
+            h1_player_k = h1_state[2] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[3])
+            h1_opponent_k = h1_state[3] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[2])
+            
+            h2_state = game[0][start-2] if start-2 >= 0 else [np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8))]
+            h2_player = h2_state[0] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[1])
+            h2_opponent = h2_state[1] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[0])
+            h2_player_k = h2_state[2] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[3])
+            h2_opponent_k = h2_state[3] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[2])
+            
+            state = np.stack(player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, player_k, h1_player_k, h2_player_k, opponent_k, h1_opponent_k, h2_opponent_k, turn)
+            action_probs.append(curr_action_probs)
+            values.append(curr_value)
+            states.append(state)
+            
         return states, action_probs, values
     
 class Trainer():
