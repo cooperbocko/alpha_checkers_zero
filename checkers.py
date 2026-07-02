@@ -25,12 +25,13 @@ class Checkers:
     def __init__(self):
         self.outcome = None
         self.turn = Piece.BLACK
+        self.prev_turn = None
         self.prev_jump = None
         self.w_score = 0
         self.b_score = 0
         self.draw_moves = 0
         self.max_moves = 40
-        self.board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
+        self.board = np.full((8, 8), Piece.EMPTY, dtype=object)
         for i in range(3):
             for j in range(8):
                 if i % 2 == 0 and j % 2 == 1:
@@ -79,13 +80,7 @@ class Checkers:
                 elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_WHITE or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_BLACK:
                     player_k[i][j] = 1
                 elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_BLACK or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_WHITE:
-                    opponent_k[i][j] = 1
-        #Board is in Black's perspective
-        if self.turn == Piece.WHITE:
-            player = np.flip(player)
-            opponent = np.flip(opponent)
-            player_k = np.flip(player_k)
-            opponent_k = np.flip(opponent_k)            
+                    opponent_k[i][j] = 1         
         turn = np.zeros((8, 8)) if self.turn == Piece.BLACK else np.ones((8, 8))
         
         return np.stack((player, opponent, player_k, opponent_k, turn))
@@ -181,8 +176,10 @@ class Checkers:
                 
             if self.is_jump(new_position, Move.UPLEFT) or self.is_jump(new_position, Move.UPRIGHT) or self.is_jump(new_position, Move.DOWNLEFT) or self.is_jump(new_position, Move.DOWNRIGHT):
                 self.prev_jump = new_position
+                self.prev_turn = self.turn
             else:
                 self.prev_jump = None
+                self.prev_turn = self.turn
                 self.turn = Piece.WHITE if self.turn == Piece.BLACK else Piece.BLACK
         else:
             if move == Move.UPLEFT:
@@ -197,6 +194,7 @@ class Checkers:
             elif move == Move.DOWNRIGHT:
                 self.board[position[0] + 1][position[1] + 1] = piece
                 new_position = (position[0] + 1, position[1] + 1)
+            self.prev_turn = self.turn
             self.turn = Piece.WHITE if self.turn == Piece.BLACK else Piece.BLACK
         
         if piece == Piece.BLACK and new_position[0] == 0:
@@ -208,6 +206,9 @@ class Checkers:
             self.draw_moves = 0
         else:
             self.draw_moves += 1
+            
+        if self.turn != self.prev_turn:
+            self.board = np.flip(self.board) #flip perspective on turn change
         
         return True
             
@@ -235,7 +236,7 @@ class Checkers:
             return True
         
         #Regular moves
-        if piece == Piece.BLACK:
+        if piece == Piece.BLACK or piece == Piece.WHITE:
             if move == Move.DOWNLEFT or move == Move.DOWNRIGHT:
                 return False
             elif move == Move.UPLEFT:
@@ -247,19 +248,6 @@ class Checkers:
                 if position[0] - 1 < 0 or position[1] + 1 >= 8:
                     return False
                 if self.board[position[0] - 1][position[1] + 1] != Piece.EMPTY:
-                    return False
-        elif piece == Piece.WHITE:
-            if move == Move.UPLEFT or move == Move.UPRIGHT:
-                return False
-            elif move == Move.DOWNLEFT:
-                if position[0] + 1 >= 8 or position[1] - 1 < 0:
-                    return False
-                if self.board[position[0] + 1][position[1] - 1] != Piece.EMPTY:
-                    return False
-            elif move == Move.DOWNRIGHT:
-                if position[0] + 1 >= 8 or position[1] + 1 >= 8:
-                    return False
-                if self.board[position[0] + 1][position[1] + 1] != Piece.EMPTY:
                     return False
         elif piece == Piece.K_BLACK or piece == Piece.K_WHITE:
             if move == Move.UPLEFT:
@@ -308,11 +296,11 @@ class Checkers:
                 if up_right and self.board[up_right[0]][up_right[1]] == Piece.WHITE and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
         elif piece == Piece.WHITE:
-            if move == Move.DOWNLEFT:
-                if down_left and self.board[down_left[0]][down_left[1]] == Piece.BLACK and down_left_2 and self.board[down_left_2[0]][down_left_2[1]] == Piece.EMPTY:
+            if move == Move.UPLEFT:
+                if up_left and self.board[up_left[0]][up_left[1]] == Piece.BLACK and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
                     return True
-            elif move == Move.DOWNRIGHT:
-                if down_right and self.board[down_right[0]][down_right[1]] == Piece.BLACK and down_right_2 and self.board[down_right_2[0]][down_right_2[1]] == Piece.EMPTY:
+            elif move == Move.UPRIGHT:
+                if up_right and self.board[up_right[0]][up_right[1]] == Piece.BLACK and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
         elif piece == Piece.K_BLACK:
             if move == Move.UPLEFT:

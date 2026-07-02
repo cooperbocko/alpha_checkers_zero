@@ -1,5 +1,6 @@
 from checkers import Checkers, Move
 from model import ReplayBuffer
+import numpy as np
 
 game = Checkers()
 buffer = ReplayBuffer()
@@ -19,7 +20,7 @@ print(f"current-states: \nplayer:\n{player}\nopponent:\n{opponent}\nplayer_k:\n{
 states.append((player, opponent, player_k, opponent_k, turn))
 
 print('MOVE 2 --------')
-game.move((2, 1), Move.DOWNLEFT)
+game.move((5, 6), Move.UPRIGHT)
 player, opponent, player_k, opponent_k, turn = game.get_state()
 game.print_board()
 print(f"current-states: \nplayer:\n{player}\nopponent:\n{opponent}\nplayer_k:\n{player_k}\nopponent_k:\n{opponent_k}\nturn:\n{turn}")
