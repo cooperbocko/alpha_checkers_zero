@@ -24,7 +24,7 @@ class ResBlock(nn.Module):
         out = F.relu(out)
         return out
 
-class ResNet(nn.module):
+class ResNet(nn.Module):
     def __init__(self, input_channels=17, n_blocks=10, n_actions=8*8*4):
         super(ResNet, self).__init__()
         self.conv_init = nn.Conv2d(input_channels, 128, kernel_size=3, padding=1, bias=False)
@@ -98,7 +98,7 @@ class ReplayBuffer():
             h2_player_k = h2_state[2] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[3])
             h2_opponent_k = h2_state[3] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[2])
             
-            state = np.stack(player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, player_k, h1_player_k, h2_player_k, opponent_k, h1_opponent_k, h2_opponent_k, turn)
+            state = np.stack((player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, player_k, h1_player_k, h2_player_k, opponent_k, h1_opponent_k, h2_opponent_k, turn))
             action_probs.append(curr_action_probs)
             values.append(curr_value)
             states.append(state)

@@ -209,7 +209,6 @@ class Checkers:
         else:
             self.draw_moves += 1
         
-        self.move_count += 1
         return True
             
     def check_valid_move(self, position: tuple[int, int], move: Move, jump: bool, is_jump: bool):
@@ -406,9 +405,5 @@ class Checkers:
                 if self.check_valid_move((i, j), Move.DOWNLEFT, False, False) or self.check_valid_move((i, j), Move.DOWNRIGHT, False, False) or self.check_valid_move((i, j), Move.UPLEFT, False, False) or self.check_valid_move((i, j), Move.UPRIGHT, False, False):
                         return True
         return False
-                
-check = Checkers()
-while True:
-    if not check.step():
-        break
+            
         
