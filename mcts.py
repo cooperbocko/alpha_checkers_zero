@@ -1,13 +1,18 @@
 import math
+import copy
 import numpy as np
 
-from checkers import Checkers
+import torch
+
+from checkers import Checkers, Outcome
 from model import ResNet
 
 class MCTSNode:
     def __init__(self, parent, state: Checkers, prior_prob: float):
         self.parent = parent
         self.state = state
+        self.h1_state = None
+        self.h2_state = None
         self.children = {}
         self.visits = 0
         self.t_action_value = 0
@@ -16,6 +21,29 @@ class MCTSNode:
         
     def is_leaf(self):
         return len(self.children) == 0
+    
+    def get_model_state(self):
+        curr_state = self.state.get_state()            
+        player = curr_state[0]
+        opponent = curr_state[1]
+        player_k = curr_state[2]
+        opponent_k = curr_state[3]
+        turn = curr_state[4]
+            
+        h1_state = self.h1_state.get_state() if self.h1_state is not None else [np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8))]
+        h1_player = h1_state[0] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[1])
+        h1_opponent = h1_state[1] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[0])
+        h1_player_k = h1_state[2] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[3])
+        h1_opponent_k = h1_state[3] if turn[0][0] == h1_state[4][0][0] else np.flip(h1_state[2])
+            
+        h2_state = self.h2_state.get_state() if self.h2_state is not None else [np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8)), np.zeros((8, 8))]
+        h2_player = h2_state[0] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[1])
+        h2_opponent = h2_state[1] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[0])
+        h2_player_k = h2_state[2] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[3])
+        h2_opponent_k = h2_state[3] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[2])
+            
+        model_state = np.stack((player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, player_k, h1_player_k, h2_player_k, opponent_k, h1_opponent_k, h2_opponent_k, turn))
+        return model_state
         
 class MCTS:
     def __init__(self, model: ResNet, root: MCTSNode, iterations: int, temperature: float = 1.0):
@@ -27,8 +55,8 @@ class MCTS:
     def get_move(self):
         self.search()
             
-        actions = self.root.children.keys()
-        visits = np.array([child.visits for child in self.root.children])
+        actions = list(self.root.children.keys())
+        visits = np.array([child.visits for child in self.root.children.values()])
         total_visits = np.sum(visits)
         visits = visits ** (1 / self.temperature)
         probs = visits / total_visits
@@ -46,8 +74,19 @@ class MCTS:
             node = self.select(self.root)
             
             # expand
-            action_probs, value = self.model(node.state.get_state())
-            self.expand(node, action_probs)
+            if node.state.outcome is None:
+                model_state = node.get_model_state()
+                state_tensor = torch.tensor(model_state, dtype=torch.float32)[None, :]
+                action_probs, value = self.model(state_tensor)
+                action_probs = action_probs[0]
+                self.expand(node, action_probs)
+            else:
+                if node.state.outcome == Outcome.DRAW:
+                    value = 0
+                elif node.state.turn == node.state.outcome:
+                    value = 1
+                else:
+                    value = -1
             
             # backprop
             self.backpropagate(node, value)
@@ -73,12 +112,19 @@ class MCTS:
         return node
         
     def expand(self, node: MCTSNode, action_probs):
-        for i, action in node.state.get_valid_moves().enumerate():
+        valid_moves = node.state.get_valid_moves()
+        total_prob = sum(action_probs[i] for i, action in enumerate(valid_moves) if action == 1)
+        if total_prob == 0:
+            total_prob = 1e-8
+        
+        for i, action in enumerate(valid_moves):
             if action == 1:
-                new_state = node.state.copy()
-                position, move = new_state.get_move(i)
-                new_state.move(position, move)
-                child = MCTSNode(node, new_state, action_probs[i])
+                new_state = copy.deepcopy(node.state)
+                new_state.step(i)
+                normalized_prob = action_probs[i] / total_prob
+                child = MCTSNode(node, new_state, normalized_prob)
+                child.h1_state = node.state
+                child.h2_state = node.h1_state
                 node.children[i] = child
         
     def backpropagate(self, node: MCTSNode, value):

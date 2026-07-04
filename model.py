@@ -25,21 +25,21 @@ class ResBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, input_channels=17, n_blocks=10, n_actions=8*8*4):
+    def __init__(self, input_channels=13, n_blocks=10, n_channels=128, value_layers=64, n_actions=8*8*4):
         super(ResNet, self).__init__()
-        self.conv_init = nn.Conv2d(input_channels, 128, kernel_size=3, padding=1, bias=False)
-        self.bn_init = nn.BatchNorm2d(128)
+        self.conv_init = nn.Conv2d(input_channels, n_channels, kernel_size=3, padding=1, bias=False)
+        self.bn_init = nn.BatchNorm2d(n_channels)
         
-        self.res_blocks = nn.ModuleList([ResBlock(128) for _ in range(n_blocks-1)])
+        self.res_blocks = nn.ModuleList([ResBlock(n_channels) for _ in range(n_blocks-1)])
         
-        self.policy_conv = nn.Conv2d(128, 2, kernel_size=1, bias=False)
+        self.policy_conv = nn.Conv2d(n_channels, 2, kernel_size=1, bias=False)
         self.policy_bn = nn.BatchNorm2d(2)
         self.policy = nn.Linear(2*8*8, n_actions)
         
-        self.value_conv = nn.Conv2d(128, 1, kernel_size=1, bias=False)
+        self.value_conv = nn.Conv2d(n_channels, 1, kernel_size=1, bias=False)
         self.value_bn = nn.BatchNorm2d(1)
-        self.value_linear = nn.Linear(1*8*8, 1, 64)
-        self.value = nn.Linear(64, 1)
+        self.value_linear = nn.Linear(1*8*8, value_layers, bias=False)
+        self.value = nn.Linear(value_layers, 1)
         
     def forward(self, x):
         x = F.relu(self.bn_init(self.conv_init(x)))
