@@ -112,7 +112,7 @@ class Checkers:
                     print("w", end = " ")
                 elif self.board[i][j] == Piece.K_BLACK:
                     print("B", end = " ")
-                elif self.board[i][i] == Piece.K_WHITE:
+                elif self.board[i][j] == Piece.K_WHITE:
                     print("W", end = " ")
                 else:
                     print("-", end = " ")
@@ -265,43 +265,43 @@ class Checkers:
         
         if piece == Piece.BLACK:
             if move == Move.UPLEFT:
-                if up_left and self.board[up_left[0]][up_left[1]] == Piece.WHITE and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
+                if up_left and (self.board[up_left[0]][up_left[1]] == Piece.WHITE or self.board[up_left[0]][up_left[1]] == Piece.K_WHITE) and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.UPRIGHT:
-                if up_right and self.board[up_right[0]][up_right[1]] == Piece.WHITE and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
+                if up_right and (self.board[up_right[0]][up_right[1]] == Piece.WHITE or self.board[up_right[0]][up_right[1]] == Piece.K_WHITE) and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
         elif piece == Piece.WHITE:
             if move == Move.UPLEFT:
-                if up_left and self.board[up_left[0]][up_left[1]] == Piece.BLACK and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
+                if up_left and (self.board[up_left[0]][up_left[1]] == Piece.BLACK or self.board[up_left[0]][up_left[1]] == Piece.K_BLACK) and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.UPRIGHT:
-                if up_right and self.board[up_right[0]][up_right[1]] == Piece.BLACK and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
+                if up_right and (self.board[up_right[0]][up_right[1]] == Piece.BLACK or self.board[up_right[0]][up_right[1]] == Piece.K_BLACK) and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
         elif piece == Piece.K_BLACK:
             if move == Move.UPLEFT:
-                if up_left and self.board[up_left[0]][up_left[1]] == Piece.WHITE and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
+                if up_left and (self.board[up_left[0]][up_left[1]] == Piece.WHITE or self.board[up_left[0]][up_left[1]] == Piece.K_WHITE) and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.UPRIGHT:
-                if up_right and self.board[up_right[0]][up_right[1]] == Piece.WHITE and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
+                if up_right and (self.board[up_right[0]][up_right[1]] == Piece.WHITE or self.board[up_right[0]][up_right[1]] == Piece.K_WHITE) and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.DOWNLEFT:
-                if down_left and self.board[down_left[0]][down_left[1]] == Piece.WHITE and down_left_2 and self.board[down_left_2[0]][down_left_2[1]] == Piece.EMPTY:
+                if down_left and (self.board[down_left[0]][down_left[1]] == Piece.WHITE or self.board[down_left[0]][down_left[1]] == Piece.K_WHITE) and down_left_2 and self.board[down_left_2[0]][down_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.DOWNRIGHT:
-                if down_right and self.board[down_right[0]][down_right[1]] == Piece.WHITE and down_right_2 and self.board[down_right_2[0]][down_right_2[1]] == Piece.EMPTY:
+                if down_right and (self.board[down_right[0]][down_right[1]] == Piece.WHITE or self.board[down_right[0]][down_right[1]] == Piece.K_WHITE) and down_right_2 and self.board[down_right_2[0]][down_right_2[1]] == Piece.EMPTY:
                     return True
         if piece == Piece.K_WHITE:
             if move == Move.UPLEFT:
-                if up_left and self.board[up_left[0]][up_left[1]] == Piece.BLACK and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
+                if up_left and (self.board[up_left[0]][up_left[1]] == Piece.BLACK or self.board[up_left[0]][up_left[1]] == Piece.K_BLACK) and up_left_2 and self.board[up_left_2[0]][up_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.UPRIGHT:
-                if up_right and self.board[up_right[0]][up_right[1]] == Piece.BLACK and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
+                if up_right and (self.board[up_right[0]][up_right[1]] == Piece.BLACK or self.board[up_right[0]][up_right[1]] == Piece.K_BLACK) and up_right_2 and self.board[up_right_2[0]][up_right_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.DOWNLEFT:
-                if down_left and self.board[down_left[0]][down_left[1]] == Piece.BLACK and down_left_2 and self.board[down_left_2[0]][down_left_2[1]] == Piece.EMPTY:
+                if down_left and (self.board[down_left[0]][down_left[1]] == Piece.BLACK or self.board[down_left[0]][down_left[1]] == Piece.K_BLACK) and down_left_2 and self.board[down_left_2[0]][down_left_2[1]] == Piece.EMPTY:
                     return True
             elif move == Move.DOWNRIGHT:
-                if down_right and self.board[down_right[0]][down_right[1]] == Piece.BLACK and down_right_2 and self.board[down_right_2[0]][down_right_2[1]] == Piece.EMPTY:
+                if down_right and (self.board[down_right[0]][down_right[1]] == Piece.BLACK or self.board[down_right[0]][down_right[1]] == Piece.K_BLACK) and down_right_2 and self.board[down_right_2[0]][down_right_2[1]] == Piece.EMPTY:
                     return True
         return False
     
@@ -348,20 +348,19 @@ class Checkers:
         return False
             
     def can_move(self):
+        #Jumps
+        if self.can_jump():
+            return True    
         for i in range(8):
             for j in range(8):
                 piece = self.board[i][j]
                 if piece == Piece.EMPTY:
-                    continue
-                
-                #Jumps
-                if self.can_jump():
-                    return True      
+                    continue  
                 
                 #Regular moves
-                if self.turn == Piece.BLACK and piece == Piece.WHITE or piece == Piece.K_WHITE:
+                if self.turn == Piece.BLACK and (piece == Piece.WHITE or piece == Piece.K_WHITE):
                     continue
-                if self.turn == Piece.WHITE and piece == Piece.BLACK or piece == Piece.K_BLACK:
+                if self.turn == Piece.WHITE and (piece == Piece.BLACK or piece == Piece.K_BLACK):
                     continue
                 if self.check_valid_move((i, j), Move.DOWNLEFT, False, False) or self.check_valid_move((i, j), Move.DOWNRIGHT, False, False) or self.check_valid_move((i, j), Move.UPLEFT, False, False) or self.check_valid_move((i, j), Move.UPRIGHT, False, False):
                         return True
