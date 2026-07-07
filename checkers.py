@@ -2,7 +2,7 @@ from enum import Enum
 
 import numpy as np
 
-class Piece(Enum):
+class Piece(int, Enum):
     EMPTY = 0
     BLACK = 1
     WHITE = 2
@@ -15,7 +15,7 @@ class Move(Enum):
     DOWNLEFT = 2
     DOWNRIGHT = 3
     
-class Outcome(Enum):
+class Outcome(int, Enum):
     DRAW = 0
     B_WIN = 1
     W_WIN = 2
@@ -31,7 +31,7 @@ class Checkers:
         self.b_score = 0
         self.draw_moves = 0
         self.max_moves = 40
-        self.board = np.full((8, 8), Piece.EMPTY, dtype=object)
+        self.board = np.zeros((8, 8), dtype=np.int8)
         for i in range(3):
             for j in range(8):
                 if i % 2 == 0 and j % 2 == 1:
@@ -45,13 +45,26 @@ class Checkers:
                 elif i % 2 == 1 and j % 2 == 0:
                     self.board[i][j] = Piece.BLACK
                     
+    def copy(self):
+        temp = Checkers()
+        temp.outcome = self.outcome
+        temp.turn = self.turn
+        temp.prev_turn = self.prev_turn
+        temp.prev_jump = self.prev_jump
+        temp.w_score = self.w_score
+        temp.b_score = self.b_score
+        temp.draw_moves = self.draw_moves
+        temp.max_moves = self.max_moves
+        temp.board = np.copy(self.board)
+        return temp
+                    
     def step(self, action: int):
         move = self.get_move(action)
-        can_jump = self.can_jump()
+        #can_jump = self.can_jump()
         is_jump = self.is_jump(move[0], move[1])
         
-        if not self.check_valid_move(move[0], move[1], can_jump, is_jump):
-            return False
+        #if not self.check_valid_move(move[0], move[1], can_jump, is_jump):
+            #return False
         self.move(move[0], move[1], is_jump)
         
         if self.check_b_win() or self.check_w_win() or self.check_draw():
@@ -60,21 +73,18 @@ class Checkers:
         return True
     
     def get_state(self):
-        player = np.zeros((8, 8))
-        opponent = np.zeros((8, 8))
-        player_k = np.zeros((8, 8))
-        opponent_k = np.zeros((8, 8))
-        for i in range(8):
-            for j in range(8):
-                if self.turn == Piece.WHITE and self.board[i][j] == Piece.WHITE or self.turn == Piece.BLACK and self.board[i][j] == Piece.BLACK:
-                    player[i][j] = 1
-                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.BLACK or self.turn == Piece.BLACK and self.board[i][j] == Piece.WHITE:
-                    opponent[i][j] = 1
-                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_WHITE or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_BLACK:
-                    player_k[i][j] = 1
-                elif self.turn == Piece.WHITE and self.board[i][j] == Piece.K_BLACK or self.turn == Piece.BLACK and self.board[i][j] == Piece.K_WHITE:
-                    opponent_k[i][j] = 1         
-        turn = np.zeros((8, 8)) if self.turn == Piece.BLACK else np.ones((8, 8))
+        if self.turn == Piece.WHITE:
+            player = (self.board == Piece.WHITE).astype(np.float32)
+            opponent = (self.board == Piece.BLACK).astype(np.float32)
+            player_k = (self.board == Piece.K_WHITE).astype(np.float32)
+            opponent_k = (self.board == Piece.K_BLACK).astype(np.float32)
+            turn = np.zeros((8, 8))
+        else:
+            player = (self.board == Piece.BLACK).astype(np.float32)
+            opponent = (self.board == Piece.WHITE).astype(np.float32)
+            player_k = (self.board == Piece.K_BLACK).astype(np.float32)
+            opponent_k = (self.board == Piece.K_WHITE).astype(np.float32)
+            turn = np.ones((8, 8))
         
         return np.stack((player, opponent, player_k, opponent_k, turn))
     
@@ -83,16 +93,28 @@ class Checkers:
         moves = [0 for _ in range(8 * 8 * 4)]
         if self.outcome is not None:
             return moves
+        
+        can_jump = self.can_jump()
         for i in range(8):
             for j in range(8):
-                if self.check_valid_move((i, j), Move.UPLEFT, self.can_jump(), self.is_jump((i, j), Move.UPLEFT)):
-                    moves[i * 8 * 4 + j * 4 + 0] = 1
-                if self.check_valid_move((i, j), Move.UPRIGHT, self.can_jump(), self.is_jump((i, j), Move.UPRIGHT)):
-                    moves[i * 8 * 4 + j * 4 + 1] = 1
-                if self.check_valid_move((i, j), Move.DOWNLEFT, self.can_jump(), self.is_jump((i, j), Move.DOWNLEFT)):
-                    moves[i * 8 * 4 + j * 4 + 2] = 1
-                if self.check_valid_move((i, j), Move.DOWNRIGHT, self.can_jump(), self.is_jump((i, j), Move.DOWNRIGHT)):
-                    moves[i * 8 * 4+ j * 4 + 3] = 1
+                piece = self.board[i][j]
+                if piece == Piece.EMPTY or self.turn == Piece.WHITE and (piece == Piece.BLACK or piece == Piece.K_BLACK) or self.turn == Piece.BLACK and (piece == Piece.WHITE or piece == Piece.K_WHITE):
+                    continue
+                
+                if piece == Piece.BLACK or piece == Piece.WHITE:
+                    if self.check_valid_move((i, j), Move.UPLEFT, can_jump, self.is_jump((i, j), Move.UPLEFT)):
+                        moves[i * 8 * 4 + j * 4 + 0] = 1
+                    if self.check_valid_move((i, j), Move.UPRIGHT, can_jump, self.is_jump((i, j), Move.UPRIGHT)):
+                        moves[i * 8 * 4 + j * 4 + 1] = 1
+                else:
+                    if self.check_valid_move((i, j), Move.UPLEFT, can_jump, self.is_jump((i, j), Move.UPLEFT)):
+                        moves[i * 8 * 4 + j * 4 + 0] = 1
+                    if self.check_valid_move((i, j), Move.UPRIGHT, can_jump, self.is_jump((i, j), Move.UPRIGHT)):
+                        moves[i * 8 * 4 + j * 4 + 1] = 1
+                    if self.check_valid_move((i, j), Move.DOWNLEFT, can_jump, self.is_jump((i, j), Move.DOWNLEFT)):
+                        moves[i * 8 * 4 + j * 4 + 2] = 1
+                    if self.check_valid_move((i, j), Move.DOWNRIGHT, can_jump, self.is_jump((i, j), Move.DOWNRIGHT)):
+                        moves[i * 8 * 4+ j * 4 + 3] = 1
         return moves
     
     def get_move(self, logit: int) -> tuple[tuple[int, int], Move]:
@@ -306,8 +328,8 @@ class Checkers:
         return False
     
     def can_jump(self):
-        for i in range(8):
-            for j in range(8):
+        for i in range(7, -1, -1):
+            for j in range(7, -1, -1):
                 piece = self.board[i][j]
                 if piece == Piece.EMPTY:
                     continue
@@ -319,8 +341,12 @@ class Checkers:
                     if piece == Piece.BLACK or piece == Piece.K_BLACK:
                         continue
                 
-                if self.is_jump((i, j), Move.UPLEFT) or self.is_jump((i, j), Move.UPRIGHT) or self.is_jump((i, j), Move.DOWNLEFT) or self.is_jump((i, j), Move.DOWNRIGHT):
-                    return True
+                if piece == Piece.BLACK or piece == Piece.WHITE:
+                    if self.is_jump((i, j), Move.UPLEFT) or self.is_jump((i, j), Move.UPRIGHT):
+                        return True
+                else:
+                    if self.is_jump((i, j), Move.UPLEFT) or self.is_jump((i, j), Move.UPRIGHT) or self.is_jump((i, j), Move.DOWNLEFT) or self.is_jump((i, j), Move.DOWNRIGHT):
+                        return True
         return False
     
     def check_w_win(self):
@@ -351,18 +377,22 @@ class Checkers:
         #Jumps
         if self.can_jump():
             return True    
-        for i in range(8):
-            for j in range(8):
+        for i in range(7, -1, -1):
+            for j in range(7, -1, -1):
                 piece = self.board[i][j]
                 if piece == Piece.EMPTY:
                     continue  
                 
-                #Regular moves
                 if self.turn == Piece.BLACK and (piece == Piece.WHITE or piece == Piece.K_WHITE):
                     continue
                 if self.turn == Piece.WHITE and (piece == Piece.BLACK or piece == Piece.K_BLACK):
                     continue
-                if self.check_valid_move((i, j), Move.DOWNLEFT, False, False) or self.check_valid_move((i, j), Move.DOWNRIGHT, False, False) or self.check_valid_move((i, j), Move.UPLEFT, False, False) or self.check_valid_move((i, j), Move.UPRIGHT, False, False):
+                
+                if piece == Piece.BLACK or piece == Piece.WHITE:
+                    if self.check_valid_move((i, j), Move.UPLEFT, False, False) or self.check_valid_move((i, j), Move.UPRIGHT, False, False):
+                        return True
+                else:
+                    if self.check_valid_move((i, j), Move.DOWNLEFT, False, False) or self.check_valid_move((i, j), Move.DOWNRIGHT, False, False) or self.check_valid_move((i, j), Move.UPLEFT, False, False) or self.check_valid_move((i, j), Move.UPRIGHT, False, False):
                         return True
         return False
             
