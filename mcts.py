@@ -3,11 +3,11 @@ import math
 import numpy as np
 import torch
 
-from checkers import Checkers, Outcome
+from game import Game
 from model import ResNet
 
 class MCTSNode:
-    def __init__(self, parent, state: Checkers, prior_prob: float):
+    def __init__(self, parent, state: Game, prior_prob: float):
         self.parent = parent
         self.state = state
         self.h1_state = None
@@ -42,6 +42,38 @@ class MCTSNode:
         h2_opponent_k = h2_state[3] if turn[0][0] == h2_state[4][0][0] else np.flip(h2_state[2])
             
         model_state = np.stack((player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, player_k, h1_player_k, h2_player_k, opponent_k, h1_opponent_k, h2_opponent_k, turn))
+        return model_state
+    
+class TTTMCTSNode:
+    def __init__(self, parent, state: Game, prior_prob: float):
+        self.parent = parent
+        self.state = state
+        self.h1_state = None
+        self.h2_state = None
+        self.children = {}
+        self.visits = 0
+        self.t_action_value = 0
+        self.m_action_value = 0
+        self.prior_prob = prior_prob
+        
+    def is_leaf(self):
+        return len(self.children) == 0
+    
+    def get_model_state(self):
+        curr_state = self.state.get_state()            
+        player = curr_state[0]
+        opponent = curr_state[1]
+        turn = curr_state[2]
+            
+        h1_state = self.h1_state.get_state() if self.h1_state is not None else [np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))]
+        h1_player = h1_state[0] if turn[0][0] == h1_state[2][0][0] else np.flip(h1_state[1])
+        h1_opponent = h1_state[1] if turn[0][0] == h1_state[2][0][0] else np.flip(h1_state[0])
+            
+        h2_state = self.h2_state.get_state() if self.h2_state is not None else [np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))]
+        h2_player = h2_state[0] if turn[0][0] == h2_state[2][0][0] else np.flip(h2_state[1])
+        h2_opponent = h2_state[1] if turn[0][0] == h2_state[2][0][0] else np.flip(h2_state[0])
+            
+        model_state = np.stack((player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, turn))
         return model_state
         
 class MCTS:
@@ -83,7 +115,7 @@ class MCTS:
                 action_probs = action_probs[0].detach().cpu().numpy()
                 self.expand(node, action_probs)
             else:
-                if node.state.outcome == Outcome.DRAW:
+                if node.state.outcome == 0:
                     value = 0
                 elif node.state.turn == node.state.outcome:
                     value = 1
@@ -130,8 +162,6 @@ class MCTS:
             
         valid_indicies = np.where(mask)[0]
         for i in valid_indicies:
-            #new_state = node.state.copy()
-            #new_state.step(i)
             normalized_prob = action_probs[i] / total_prob
             child = MCTSNode(node, None, normalized_prob)
             child.h1_state = node.state

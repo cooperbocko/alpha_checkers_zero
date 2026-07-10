@@ -105,6 +105,48 @@ class ReplayBuffer():
             
         return states, action_probs, values
     
+class TTTReplayBuffer():
+    def __init__(self, max_size=10000):
+        self.buffer = []
+        self.max_size = max_size
+        
+    def add(self, states, action_probs, values):
+        if len(self.buffer) >= self.max_size:
+            self.buffer.pop(0)
+        self.buffer.append((states, action_probs, values))
+        
+    def sample(self, batch_size):
+        states = []
+        action_probs = []
+        values = []
+        
+        for _ in range(batch_size):
+            game = random.choice(self.buffer)
+            start = random.randint(0, len(game[0]) - 1)
+            
+            curr_state = game[0][start]
+            curr_action_probs = game[1][start]
+            curr_value = game[2][start]
+            
+            player = curr_state[0]
+            opponent = curr_state[1]
+            turn = curr_state[2]
+            
+            h1_state = game[0][start-1] if start-1 >= 0 else [np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))]
+            h1_player = h1_state[0] if turn[0][0] == h1_state[2][0][0] else np.flip(h1_state[1])
+            h1_opponent = h1_state[1] if turn[0][0] == h1_state[2][0][0] else np.flip(h1_state[0])
+            
+            h2_state = game[0][start-2] if start-2 >= 0 else [np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))]
+            h2_player = h2_state[0] if turn[0][0] == h2_state[2][0][0] else np.flip(h2_state[1])
+            h2_opponent = h2_state[1] if turn[0][0] == h2_state[2][0][0] else np.flip(h2_state[0])
+            
+            state = np.stack((player, h1_player, h2_player, opponent, h1_opponent, h2_opponent, turn))
+            action_probs.append(curr_action_probs)
+            values.append(curr_value)
+            states.append(state)
+            
+        return states, action_probs, values
+    
 class Trainer():
     def __init__(self, model, device, replay_buffer):
         self.model = model
@@ -112,16 +154,16 @@ class Trainer():
         self.device = device
         self.replay_buffer = replay_buffer
         
-    def train(self):
-        states, t_action_probs, t_values = self.replay_buffer.sample(64)
+    def train(self, batch_size):
+        states, t_action_probs, t_values = self.replay_buffer.sample(batch_size)
         
-        states = torch.FloatTensor(states).to(self.device)
-        t_action_probs = torch.FloatTensor(t_action_probs).to(self.device)
-        t_values = torch.FloatTensor(t_values).to(self.device)
+        states = torch.FloatTensor(np.array(states)).to(self.device)
+        t_action_probs = torch.FloatTensor(np.array(t_action_probs)).to(self.device)
+        t_values = torch.FloatTensor(np.array(t_values)).to(self.device)
         
         self.optimizer.zero_grad()
         p_action_probs, p_values = self.model(states)
-        loss = F.mse_loss(p_action_probs, t_action_probs) + F.mse_loss(p_values, t_values)
+        loss = F.cross_entropy(p_action_probs, t_action_probs) + F.mse_loss(p_values.view(-1), t_values.view(-1))
         loss.backward()
         self.optimizer.step()
                    

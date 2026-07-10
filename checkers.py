@@ -85,7 +85,6 @@ class Checkers:
             player_k = (self.board == Piece.K_BLACK).astype(np.float32)
             opponent_k = (self.board == Piece.K_WHITE).astype(np.float32)
             turn = np.ones((8, 8))
-        
         return np.stack((player, opponent, player_k, opponent_k, turn))
     
     #Moves: 8x8x4 order -> up left, up right, down left, down right
